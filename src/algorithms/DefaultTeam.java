@@ -13,14 +13,9 @@ import java.io.InputStreamReader;
 
 public class DefaultTeam {
   public ArrayList<Point> calculConnectedDominatingSet(ArrayList<Point> points, int edgeThreshold) {
-    //REMOVE >>>>>
-    ArrayList<Point> result = (ArrayList<Point>)points.clone();
-    for (int i=0;i<points.size()/3;i++) result.remove(0);
-    // if (false) result = readFromFile("output0.points");
-    // else saveToFile("output",result);
-    //<<<<< REMOVE
+    ArrayList<Point> pointsClone = (ArrayList<Point>)points.clone();
 
-    return result;
+    return pointsClone;
   }
   
   
@@ -80,5 +75,25 @@ public class DefaultTeam {
       System.err.println("Input file not found.");
     }
     return points;
+  }
+
+
+  private static ArrayList<Point> neighbor (Point p, ArrayList<Point> vertices, int edgeThreshold)
+  {
+    ArrayList<Point> result = new ArrayList<Point>();
+
+    for (Point point : vertices)
+      if (point.distance(p) < edgeThreshold && !point.equals(p))
+        result.add((Point) point.clone());
+
+    return result;
+  }
+
+  private static boolean isMember (ArrayList<Point> points, Point p)
+  {
+    for (Point point : points)
+      if (point.equals(p))
+        return true;
+    return false;
   }
 }
