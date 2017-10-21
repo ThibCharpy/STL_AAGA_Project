@@ -57,16 +57,17 @@ public class DefaultTeam {
     return null;
   }
 
-  private List<Point> getActives(Point p, ArrayList<Point> points,
-                                 List<Point> neighbors, Map<Color, List<Point>> coloredPoints, int edgeThreshold){
-    //Parmi les voisins de p je prend les voisins blanc de ses voisins
+  private List<Point> getActives(List<Point> neighbors, ArrayList<Point> points,
+                                 Map<Color, List<Point>> coloredPoints, int edgeThreshold){
+    //Parmi les voisins je prend les voisins blanc de ses voisins
     List<Point> whitePoints = coloredPoints.get(Color.WHITE);
     List<Point> res = new ArrayList<>();
     for (Point neighbor : neighbors){
       ArrayList<Point> actives = neighbor(neighbor,points,edgeThreshold);
       for (Point active : actives){
-        if (whitePoints.contains(active) && !res.contains(active))
-          res.add(active);
+        if (whitePoints.contains(active))
+          if (!res.contains(active))
+            res.add(active);
       }
     }
     return res;
@@ -85,65 +86,61 @@ public class DefaultTeam {
     //TODO : possibilité de choix par le plus grand degré
     List<Point> whitePoints = colorPoints.get(Color.WHITE);
     Point leader = whitePoints.get(randomLeader);
-    whitePoints.remove(leader);
     List<Point> oldActives = new ArrayList<>();
+    whitePoints.remove(leader);
+    Point newLeader = null;
     System.out.println("END INITIALIZE MIS");
 
     // ALGORITHM
     System.out.println("START ALGO MIS");
     while (!colorPoints.get(Color.WHITE).isEmpty()){
-      System.out.println("ALGO whiteSize="+whitePoints.size());
+      //System.out.println("ALGO whiteSize="+whitePoints.size());
+      System.out.print(whitePoints.size()+":DEBUT+");
       // Je transforme le leader en noir
       colorPoints.get(Color.BLACK).add(leader);
       List<Point> leaderNeighbors = neighbor(leader,points,edgeThreshold);
-      List<Point> actives = getActives(leader,points,leaderNeighbors,
-              colorPoints,edgeThreshold);
-      boolean gotActives = false;
-      if (!actives.isEmpty()) {
-        // Si il y a des actifs
-        gotActives = true;
+      boolean activesEmpty = true;
+      if (!leaderNeighbors.isEmpty()) {
+        System.out.print("VOISIN+");
         for (Point neighbor : leaderNeighbors) {
           //je colore en gris ses voisins
+          // et je les enlève de la liste des sommet blancs
           whitePoints.remove(neighbor);
           colorPoints.get(Color.GREY).add(neighbor);
         }
-        //j'ajoute les actifs aux anciens actifs si ils n'existent pas deja dedans
-        for (Point active : actives){
-          if (!oldActives.contains(active)){
-            oldActives.add(active);
-          }
+        List<Point> actives = getActives(leaderNeighbors, points, colorPoints, edgeThreshold);
+        if (!actives.isEmpty()) {
+          System.out.print("ACTIVES+");
+          // Si il y a des actifs
+          // Je prend l'actif de plus haud degré
+          newLeader = getMaxDegreePointOfPointList(actives, points, edgeThreshold);
+          actives.remove(newLeader);
+          oldActives = actives;
+          activesEmpty = false;
         }
-        System.out.println("ALGO: actives size = " + oldActives.size());
-        // Je prend l'actif de plus haud degré
-        leader = getMaxDegreePointOfPointList(oldActives, points, edgeThreshold);
-        oldActives.remove(leader);
+      }else{
+        System.out.print("PASDEVOISIN+");
+        if (!oldActives.isEmpty()){
+          System.out.print("ANCIENNE+");
+          newLeader = getMaxDegreePointOfPointList(oldActives, points, edgeThreshold);
+          oldActives.remove(newLeader);
+          activesEmpty = false;
+        }
+      }
+      if (activesEmpty){
+        if (1 < whitePoints.size()) {
+          System.out.print("RANDOM+");
+          randomLeader = random.nextInt(whitePoints.size() - 1) + 1;
+          newLeader = whitePoints.get(randomLeader);
+        }else{
+          newLeader = whitePoints.get(0);
+        }
       }
       // J'enlève le leader de l'ensemble des points blancs
       whitePoints.remove(leader);
-      if (!gotActives && 0 < whitePoints.size()){
-        //Si il n'y avait pas d'actifs
-        // et que le graphe comporte toujours des blancs
-        if (!oldActives.isEmpty()){
-          // Si il y a des anciens actif
-          // je selectionne celui de plus haut degré pour u'il devienne leader
-          leader = getMaxDegreePointOfPointList(oldActives, points, edgeThreshold);
-          // je l'enlève des anciens actifs
-          oldActives.remove(leader);
-        }else{
-          //Si il ya plus d'ancien actifs
-          if (1 < whitePoints.size()) {
-            // Si il reste au moins deux points points non traité du graphe
-            // J'en selectionne un au hasard ui devient leader
-            //TODO : possibilité de choisir par le degré
-            randomLeader = random.nextInt(whitePoints.size() - 1) + 1;
-            leader = whitePoints.get(randomLeader);
-          } else {
-            // Si il reste exactement un sommet je le selectionne
-            leader = whitePoints.get(0);
-          }
-        }
-        whitePoints.remove(leader);
-      }
+      // je definis mon nouveau leader
+      leader = newLeader;
+      System.out.println("FIN");
     }
 
     System.out.println("END ALGO MIS");
